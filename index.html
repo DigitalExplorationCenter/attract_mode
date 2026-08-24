@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Immersive Exhibit — 270°</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
     background: #000;
+    width: 13578px;
+    height: 1200px;
     overflow: hidden;
     font-family: monospace;
   }
@@ -17,6 +18,8 @@
   #picker-screen {
     position: fixed;
     inset: 0;
+    width: 100vw;
+    height: 100vh;
     background: #07070f;
     display: flex;
     flex-direction: column;
@@ -27,8 +30,7 @@
   }
 
   #picker-screen h1 {
-    font-family: monospace;
-    font-size: 22px;
+    font-size: 20px;
     letter-spacing: 0.3em;
     color: rgba(255,255,255,0.7);
     text-transform: uppercase;
@@ -37,10 +39,9 @@
   #picker-screen p {
     font-size: 13px;
     color: rgba(255,255,255,0.35);
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     text-align: center;
-    line-height: 1.8;
-    max-width: 480px;
+    line-height: 1.9;
   }
 
   #pick-btn {
@@ -55,10 +56,7 @@
     cursor: pointer;
     transition: border-color 0.2s, color 0.2s;
   }
-  #pick-btn:hover {
-    border-color: rgba(255,255,255,0.6);
-    color: #fff;
-  }
+  #pick-btn:hover { border-color: rgba(255,255,255,0.6); color: #fff; }
 
   #picker-error {
     font-size: 12px;
@@ -69,23 +67,24 @@
 
   /* ── EXHIBIT ── */
   #exhibit {
+    position: absolute;
+    top: 0; left: 0;
     width: 13578px;
     height: 1200px;
-    display: flex;
-    position: relative;
     display: none;
+    flex-direction: row;
   }
 
   .panel {
-    flex: 0 0 1508px;
-    width: 1508px;
+    flex: 0 0 1508.67px;   /* 13578 / 9 = 1508.666… */
+    width: 1508.67px;
     height: 1200px;
     position: relative;
     overflow: hidden;
     background: #000;
-    border-right: 1px solid rgba(255,255,255,0.04);
+    border-right: 1px solid rgba(255,255,255,0.05);
   }
-  .panel:first-child { border-left: 1px solid rgba(255,255,255,0.04); }
+  .panel:last-child { border-right: none; }
 
   .panel-media {
     position: absolute;
@@ -97,43 +96,27 @@
 
   .panel-media img,
   .panel-media video {
-    max-width: 100%;
-    max-height: 100%;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
     display: block;
   }
 
-  #status {
-    position: fixed;
-    bottom: 18px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.7);
-    color: rgba(255,255,255,0.5);
-    font-size: 12px;
-    letter-spacing: 0.15em;
-    padding: 6px 16px;
-    border-radius: 20px;
+  /* subtle panel-number label */
+  .panel-num {
+    position: absolute;
+    bottom: 10px;
+    right: 12px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.12);
     pointer-events: none;
-    white-space: nowrap;
-    font-family: monospace;
-    display: none;
-    text-align: center;
-  }
-
-  #countdown {
-    color: rgba(255,255,255,0.3);
-    font-size: 11px;
-    margin-top: 3px;
-    letter-spacing: 0.1em;
+    z-index: 2;
   }
 </style>
 </head>
 <body>
 
-<!-- Folder picker -->
 <div id="picker-screen">
   <h1>Immersive Exhibit</h1>
   <p>Select the folder on your computer that contains<br>the exhibit images and videos.</p>
@@ -141,35 +124,34 @@
   <div id="picker-error"></div>
 </div>
 
-<!-- Exhibit panels (hidden until folder is chosen) -->
 <div id="exhibit">
-  <div class="panel"><div class="panel-media" id="media-0"></div></div>
-  <div class="panel"><div class="panel-media" id="media-1"></div></div>
-  <div class="panel"><div class="panel-media" id="media-2"></div></div>
-  <div class="panel"><div class="panel-media" id="media-3"></div></div>
-  <div class="panel"><div class="panel-media" id="media-4"></div></div>
-  <div class="panel"><div class="panel-media" id="media-5"></div></div>
-  <div class="panel"><div class="panel-media" id="media-6"></div></div>
-  <div class="panel"><div class="panel-media" id="media-7"></div></div>
-  <div class="panel"><div class="panel-media" id="media-8"></div></div>
-</div>
-
-<div id="status">
-  <div id="status-text"></div>
-  <div id="countdown"></div>
+  <div class="panel"><div class="panel-media" id="media-0"></div><span class="panel-num">01</span></div>
+  <div class="panel"><div class="panel-media" id="media-1"></div><span class="panel-num">02</span></div>
+  <div class="panel"><div class="panel-media" id="media-2"></div><span class="panel-num">03</span></div>
+  <div class="panel"><div class="panel-media" id="media-3"></div><span class="panel-num">04</span></div>
+  <div class="panel"><div class="panel-media" id="media-4"></div><span class="panel-num">05</span></div>
+  <div class="panel"><div class="panel-media" id="media-5"></div><span class="panel-num">06</span></div>
+  <div class="panel"><div class="panel-media" id="media-6"></div><span class="panel-num">07</span></div>
+  <div class="panel"><div class="panel-media" id="media-7"></div><span class="panel-num">08</span></div>
+  <div class="panel"><div class="panel-media" id="media-8"></div><span class="panel-num">09</span></div>
 </div>
 
 <script>
-const IMAGE_DURATION_MS = 2 * 60 * 1000;
+const IMAGE_DURATION_MS = 2 * 60 * 1000; // 2 minutes
 const IMAGE_EXTS = new Set(['jpg','jpeg','png','gif','webp','svg','avif','bmp']);
 const VIDEO_EXTS = new Set(['mp4','webm','mov','ogg','m4v']);
+const NUM_PANELS  = 9;
 
-let contentFiles = [];   // array of File objects
-let currentIndex = -1;
-let countdownInterval = null;
-let imageTimer = null;
-let activeVideo = null;
-let activeObjectURLs = [];
+let contentFiles = [];
+
+// Per-panel state
+const panels = Array.from({ length: NUM_PANELS }, (_, i) => ({
+  index:      i,
+  lastFile:   -1,
+  timer:      null,
+  objectURL:  null,
+  videoEl:    null,
+}));
 
 function getExt(name) { return name.split('.').pop().toLowerCase(); }
 function isImage(f)   { return IMAGE_EXTS.has(getExt(f.name)); }
@@ -179,35 +161,26 @@ function isVideo(f)   { return VIDEO_EXTS.has(getExt(f.name)); }
 document.getElementById('pick-btn').addEventListener('click', async () => {
   const errEl = document.getElementById('picker-error');
   errEl.style.display = 'none';
-
   try {
-    // showDirectoryPicker is supported in Chrome/Edge 86+ and Opera
     const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
     const files = [];
-
     for await (const entry of dirHandle.values()) {
       if (entry.kind === 'file') {
         const file = await entry.getFile();
-        const ext = getExt(file.name);
-        if (IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext)) {
-          files.push(file);
-        }
+        const ext  = getExt(file.name);
+        if (IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext)) files.push(file);
       }
     }
-
     if (files.length === 0) {
       errEl.textContent = 'No supported images or videos found in that folder.';
       errEl.style.display = 'block';
       return;
     }
-
     contentFiles = files;
     launchExhibit();
-
   } catch (err) {
-    if (err.name === 'AbortError') return; // user cancelled
+    if (err.name === 'AbortError') return;
     if (err.name === 'SecurityError' || typeof window.showDirectoryPicker === 'undefined') {
-      // Fallback: use a plain <input type="file"> for browsers without File System Access API
       useFallbackPicker();
     } else {
       errEl.textContent = 'Could not open folder: ' + err.message;
@@ -221,168 +194,96 @@ function useFallbackPicker() {
   input.type = 'file';
   input.multiple = true;
   input.accept = 'image/*,video/*';
-  // webkitdirectory lets you pick a whole folder in most browsers
   input.setAttribute('webkitdirectory', '');
-
   input.addEventListener('change', () => {
     const files = Array.from(input.files).filter(f => {
       const ext = getExt(f.name);
       return IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext);
     });
-
     const errEl = document.getElementById('picker-error');
     if (files.length === 0) {
       errEl.textContent = 'No supported images or videos found in that folder.';
       errEl.style.display = 'block';
       return;
     }
-
     contentFiles = files;
     launchExhibit();
   });
-
   input.click();
 }
 
 function launchExhibit() {
   document.getElementById('picker-screen').style.display = 'none';
-  document.getElementById('exhibit').style.display = 'flex';
-  document.getElementById('status').style.display = 'block';
-  document.body.style.width  = '13578px';
-  document.body.style.height = '1200px';
-  showContent();
+  const ex = document.getElementById('exhibit');
+  ex.style.display = 'flex';
+  // Kick off each panel independently with a small staggered delay
+  panels.forEach((p, i) => {
+    setTimeout(() => loadPanel(p), i * 300);
+  });
 }
 
-// ── PLAYBACK ENGINE ──
-function pickRandom() {
+// ── PER-PANEL PLAYBACK ──
+
+function pickForPanel(p) {
   if (contentFiles.length === 1) return 0;
   let next;
   do { next = Math.floor(Math.random() * contentFiles.length); }
-  while (next === currentIndex);
+  while (next === p.lastFile);
   return next;
 }
 
-function revokeOldURLs() {
-  activeObjectURLs.forEach(u => URL.revokeObjectURL(u));
-  activeObjectURLs = [];
+function clearPanel(p) {
+  clearTimeout(p.timer);
+  p.timer = null;
+  if (p.videoEl) { p.videoEl.pause(); p.videoEl = null; }
+  const slot = document.getElementById('media-' + p.index);
+  slot.innerHTML = '';
+  if (p.objectURL) { URL.revokeObjectURL(p.objectURL); p.objectURL = null; }
 }
 
-function clearAllPanels() {
-  for (let i = 0; i < 9; i++) {
-    document.getElementById('media-' + i).innerHTML = '';
-  }
-  if (activeVideo) { activeVideo.pause(); activeVideo = null; }
-  clearInterval(countdownInterval);
-  clearTimeout(imageTimer);
-  countdownInterval = imageTimer = null;
-  revokeOldURLs();
-}
+function loadPanel(p) {
+  clearPanel(p);
 
-function setStatus(text, countdownSec) {
-  document.getElementById('status-text').textContent = text;
-  const cd = document.getElementById('countdown');
-  clearInterval(countdownInterval);
-  if (countdownSec == null) { cd.textContent = ''; return; }
-  let remaining = countdownSec;
-  cd.textContent = formatTime(remaining);
-  countdownInterval = setInterval(() => {
-    remaining -= 1;
-    cd.textContent = remaining > 0 ? formatTime(remaining) : '';
-    if (remaining <= 0) clearInterval(countdownInterval);
-  }, 1000);
-}
-
-function formatTime(sec) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return m + ':' + String(s).padStart(2, '0') + ' remaining';
-}
-
-function showContent() {
-  clearAllPanels();
-
-  const idx  = pickRandom();
-  currentIndex = idx;
-  const file = contentFiles[idx];
+  const idx  = pickForPanel(p);
+  p.lastFile  = idx;
+  const file  = contentFiles[idx];
+  const url   = URL.createObjectURL(file);
+  p.objectURL = url;
+  const slot  = document.getElementById('media-' + p.index);
 
   if (isVideo(file)) {
-    const url = URL.createObjectURL(file);
-    activeObjectURLs.push(url);
-
-    const masterVideo = document.createElement('video');
-    masterVideo.src = url;
-    masterVideo.autoplay = true;
-    masterVideo.muted = true;
-    masterVideo.loop = false;
-    masterVideo.playsInline = true;
-    activeVideo = masterVideo;
-
-    masterVideo.addEventListener('loadedmetadata', () => {
-      setStatus('▶  ' + file.name, Math.round(masterVideo.duration));
+    const vid = document.createElement('video');
+    vid.src         = url;
+    vid.autoplay    = true;
+    vid.muted       = true;
+    vid.loop        = false;
+    vid.playsInline = true;
+    vid.addEventListener('ended', () => loadPanel(p));
+    vid.addEventListener('error', () => {
+      console.warn('Video error on panel', p.index, file.name);
+      setTimeout(() => loadPanel(p), 1500);
     });
-    masterVideo.addEventListener('ended', showContent);
-    masterVideo.addEventListener('error', () => {
-      setStatus('Error loading: ' + file.name + ' — skipping…');
-      setTimeout(showContent, 2000);
-    });
-
-    for (let i = 0; i < 9; i++) {
-      const slot = document.getElementById('media-' + i);
-      if (i === 0) {
-        slot.appendChild(masterVideo);
-        masterVideo.play().catch(() => {});
-      } else {
-        const clone = document.createElement('video');
-        clone.src = url;
-        clone.muted = true;
-        clone.playsInline = true;
-        clone.loop = false;
-
-        masterVideo.addEventListener('play',  () => { clone.currentTime = masterVideo.currentTime; clone.play().catch(() => {}); });
-        masterVideo.addEventListener('pause', () => clone.pause());
-        masterVideo.addEventListener('seeked',() => { clone.currentTime = masterVideo.currentTime; });
-
-        const syncInterval = setInterval(() => {
-          if (masterVideo.ended || masterVideo.paused) { clearInterval(syncInterval); return; }
-          if (Math.abs(clone.currentTime - masterVideo.currentTime) > 0.3) {
-            clone.currentTime = masterVideo.currentTime;
-          }
-        }, 5000);
-
-        clone.play().catch(() => {});
-        slot.appendChild(clone);
-      }
-    }
-
-    setStatus('▶  ' + file.name + ' — loading…');
+    vid.play().catch(() => {});
+    p.videoEl = vid;
+    slot.appendChild(vid);
 
   } else if (isImage(file)) {
-    const url = URL.createObjectURL(file);
-    activeObjectURLs.push(url);
-
-    for (let i = 0; i < 9; i++) {
-      const slot = document.getElementById('media-' + i);
-      const img  = document.createElement('img');
-      img.src = url;
-      img.alt = '';
-      if (i === 0) {
-        img.onerror = () => {
-          setStatus('Error loading: ' + file.name + ' — skipping…');
-          setTimeout(showContent, 2000);
-        };
-      }
-      slot.appendChild(img);
-    }
-
-    const durSec = Math.round(IMAGE_DURATION_MS / 1000);
-    setStatus('🖼  ' + file.name, durSec);
-    imageTimer = setTimeout(showContent, IMAGE_DURATION_MS);
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = '';
+    img.onerror = () => {
+      console.warn('Image error on panel', p.index, file.name);
+      setTimeout(() => loadPanel(p), 1500);
+    };
+    slot.appendChild(img);
+    p.timer = setTimeout(() => loadPanel(p), IMAGE_DURATION_MS);
 
   } else {
-    setStatus('Unsupported: ' + file.name + ' — skipping…');
-    setTimeout(showContent, 1500);
+    // unsupported — skip immediately
+    setTimeout(() => loadPanel(p), 500);
   }
 }
 </script>
 </body>
 </html>
+
