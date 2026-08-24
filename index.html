@@ -9,17 +9,71 @@
 
   body {
     background: #000;
-    width: 13578px;
-    height: 1200px;
     overflow: hidden;
-    font-family: sans-serif;
+    font-family: monospace;
   }
 
+  /* ── PICKER SCREEN ── */
+  #picker-screen {
+    position: fixed;
+    inset: 0;
+    background: #07070f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    gap: 28px;
+  }
+
+  #picker-screen h1 {
+    font-family: monospace;
+    font-size: 22px;
+    letter-spacing: 0.3em;
+    color: rgba(255,255,255,0.7);
+    text-transform: uppercase;
+  }
+
+  #picker-screen p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.12em;
+    text-align: center;
+    line-height: 1.8;
+    max-width: 480px;
+  }
+
+  #pick-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.75);
+    font-family: monospace;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 14px 36px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  #pick-btn:hover {
+    border-color: rgba(255,255,255,0.6);
+    color: #fff;
+  }
+
+  #picker-error {
+    font-size: 12px;
+    color: rgba(255,100,100,0.7);
+    letter-spacing: 0.1em;
+    display: none;
+  }
+
+  /* ── EXHIBIT ── */
   #exhibit {
     width: 13578px;
     height: 1200px;
     display: flex;
     position: relative;
+    display: none;
   }
 
   .panel {
@@ -65,118 +119,176 @@
     pointer-events: none;
     white-space: nowrap;
     font-family: monospace;
+    display: none;
+    text-align: center;
   }
 
   #countdown {
     color: rgba(255,255,255,0.3);
     font-size: 11px;
-    text-align: center;
-    margin-top: 4px;
+    margin-top: 3px;
     letter-spacing: 0.1em;
-    font-family: monospace;
   }
 </style>
 </head>
 <body>
 
+<!-- Folder picker -->
+<div id="picker-screen">
+  <h1>Immersive Exhibit</h1>
+  <p>Select the folder on your computer that contains<br>the exhibit images and videos.</p>
+  <button id="pick-btn">Select Content Folder</button>
+  <div id="picker-error"></div>
+</div>
+
+<!-- Exhibit panels (hidden until folder is chosen) -->
 <div id="exhibit">
-  <div class="panel" id="panel-0"><div class="panel-media" id="media-0"></div></div>
-  <div class="panel" id="panel-1"><div class="panel-media" id="media-1"></div></div>
-  <div class="panel" id="panel-2"><div class="panel-media" id="media-2"></div></div>
-  <div class="panel" id="panel-3"><div class="panel-media" id="media-3"></div></div>
-  <div class="panel" id="panel-4"><div class="panel-media" id="media-4"></div></div>
-  <div class="panel" id="panel-5"><div class="panel-media" id="media-5"></div></div>
-  <div class="panel" id="panel-6"><div class="panel-media" id="media-6"></div></div>
-  <div class="panel" id="panel-7"><div class="panel-media" id="media-7"></div></div>
-  <div class="panel" id="panel-8"><div class="panel-media" id="media-8"></div></div>
+  <div class="panel"><div class="panel-media" id="media-0"></div></div>
+  <div class="panel"><div class="panel-media" id="media-1"></div></div>
+  <div class="panel"><div class="panel-media" id="media-2"></div></div>
+  <div class="panel"><div class="panel-media" id="media-3"></div></div>
+  <div class="panel"><div class="panel-media" id="media-4"></div></div>
+  <div class="panel"><div class="panel-media" id="media-5"></div></div>
+  <div class="panel"><div class="panel-media" id="media-6"></div></div>
+  <div class="panel"><div class="panel-media" id="media-7"></div></div>
+  <div class="panel"><div class="panel-media" id="media-8"></div></div>
 </div>
 
 <div id="status">
-  <div id="status-text">Loading content…</div>
+  <div id="status-text"></div>
   <div id="countdown"></div>
 </div>
 
 <script>
-/*
-  ─────────────────────────────────────────────────────────────
-  CONTENT CONFIGURATION
-  ─────────────────────────────────────────────────────────────
-  List your files from the "content" folder below.
-  Supported image types: jpg, jpeg, png, gif, webp, svg, avif
-  Supported video types: mp4, webm, mov, ogg
-
-  Example:
-    const CONTENT_FILES = [
-      'content/photo1.jpg',
-      'content/video1.mp4',
-      'content/photo2.png',
-      'content/video2.webm',
-    ];
-  ─────────────────────────────────────────────────────────────
-*/
-const CONTENT_FILES = [
-  /* ← ADD YOUR FILES HERE, e.g.:
-  'content/image1.jpg',
-  'content/video1.mp4',
-  'content/image2.png',
-  */
-];
-
-const IMAGE_DURATION_MS = 2 * 60 * 1000; // 2 minutes
-
+const IMAGE_DURATION_MS = 2 * 60 * 1000;
 const IMAGE_EXTS = new Set(['jpg','jpeg','png','gif','webp','svg','avif','bmp']);
 const VIDEO_EXTS = new Set(['mp4','webm','mov','ogg','m4v']);
 
-function getExt(path) {
-  return path.split('.').pop().toLowerCase();
-}
-
-function isImage(path) { return IMAGE_EXTS.has(getExt(path)); }
-function isVideo(path) { return VIDEO_EXTS.has(getExt(path)); }
-
+let contentFiles = [];   // array of File objects
 let currentIndex = -1;
 let countdownInterval = null;
 let imageTimer = null;
 let activeVideo = null;
+let activeObjectURLs = [];
 
+function getExt(name) { return name.split('.').pop().toLowerCase(); }
+function isImage(f)   { return IMAGE_EXTS.has(getExt(f.name)); }
+function isVideo(f)   { return VIDEO_EXTS.has(getExt(f.name)); }
+
+// ── FOLDER PICKER ──
+document.getElementById('pick-btn').addEventListener('click', async () => {
+  const errEl = document.getElementById('picker-error');
+  errEl.style.display = 'none';
+
+  try {
+    // showDirectoryPicker is supported in Chrome/Edge 86+ and Opera
+    const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+    const files = [];
+
+    for await (const entry of dirHandle.values()) {
+      if (entry.kind === 'file') {
+        const file = await entry.getFile();
+        const ext = getExt(file.name);
+        if (IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext)) {
+          files.push(file);
+        }
+      }
+    }
+
+    if (files.length === 0) {
+      errEl.textContent = 'No supported images or videos found in that folder.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    contentFiles = files;
+    launchExhibit();
+
+  } catch (err) {
+    if (err.name === 'AbortError') return; // user cancelled
+    if (err.name === 'SecurityError' || typeof window.showDirectoryPicker === 'undefined') {
+      // Fallback: use a plain <input type="file"> for browsers without File System Access API
+      useFallbackPicker();
+    } else {
+      errEl.textContent = 'Could not open folder: ' + err.message;
+      errEl.style.display = 'block';
+    }
+  }
+});
+
+function useFallbackPicker() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.multiple = true;
+  input.accept = 'image/*,video/*';
+  // webkitdirectory lets you pick a whole folder in most browsers
+  input.setAttribute('webkitdirectory', '');
+
+  input.addEventListener('change', () => {
+    const files = Array.from(input.files).filter(f => {
+      const ext = getExt(f.name);
+      return IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext);
+    });
+
+    const errEl = document.getElementById('picker-error');
+    if (files.length === 0) {
+      errEl.textContent = 'No supported images or videos found in that folder.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    contentFiles = files;
+    launchExhibit();
+  });
+
+  input.click();
+}
+
+function launchExhibit() {
+  document.getElementById('picker-screen').style.display = 'none';
+  document.getElementById('exhibit').style.display = 'flex';
+  document.getElementById('status').style.display = 'block';
+  document.body.style.width  = '13578px';
+  document.body.style.height = '1200px';
+  showContent();
+}
+
+// ── PLAYBACK ENGINE ──
 function pickRandom() {
-  if (CONTENT_FILES.length === 0) return null;
-  if (CONTENT_FILES.length === 1) return 0;
+  if (contentFiles.length === 1) return 0;
   let next;
-  do { next = Math.floor(Math.random() * CONTENT_FILES.length); }
+  do { next = Math.floor(Math.random() * contentFiles.length); }
   while (next === currentIndex);
   return next;
 }
 
+function revokeOldURLs() {
+  activeObjectURLs.forEach(u => URL.revokeObjectURL(u));
+  activeObjectURLs = [];
+}
+
 function clearAllPanels() {
   for (let i = 0; i < 9; i++) {
-    const slot = document.getElementById('media-' + i);
-    slot.innerHTML = '';
+    document.getElementById('media-' + i).innerHTML = '';
   }
-  if (activeVideo) {
-    activeVideo.pause();
-    activeVideo = null;
-  }
+  if (activeVideo) { activeVideo.pause(); activeVideo = null; }
   clearInterval(countdownInterval);
   clearTimeout(imageTimer);
-  countdownInterval = null;
-  imageTimer = null;
+  countdownInterval = imageTimer = null;
+  revokeOldURLs();
 }
 
 function setStatus(text, countdownSec) {
   document.getElementById('status-text').textContent = text;
   const cd = document.getElementById('countdown');
+  clearInterval(countdownInterval);
   if (countdownSec == null) { cd.textContent = ''; return; }
   let remaining = countdownSec;
   cd.textContent = formatTime(remaining);
   countdownInterval = setInterval(() => {
     remaining -= 1;
-    if (remaining <= 0) {
-      cd.textContent = '';
-      clearInterval(countdownInterval);
-    } else {
-      cd.textContent = formatTime(remaining);
-    }
+    cd.textContent = remaining > 0 ? formatTime(remaining) : '';
+    if (remaining <= 0) clearInterval(countdownInterval);
   }, 1000);
 }
 
@@ -187,45 +299,33 @@ function formatTime(sec) {
 }
 
 function showContent() {
-  if (CONTENT_FILES.length === 0) {
-    setStatus('No content found — add files to the CONTENT_FILES list in the script.');
-    return;
-  }
-
   clearAllPanels();
 
-  const idx = pickRandom();
+  const idx  = pickRandom();
   currentIndex = idx;
-  const file = CONTENT_FILES[idx];
-  const name = file.split('/').pop();
+  const file = contentFiles[idx];
 
   if (isVideo(file)) {
-    // ── VIDEO ──
+    const url = URL.createObjectURL(file);
+    activeObjectURLs.push(url);
+
     const masterVideo = document.createElement('video');
-    masterVideo.src = file;
+    masterVideo.src = url;
     masterVideo.autoplay = true;
     masterVideo.muted = true;
     masterVideo.loop = false;
     masterVideo.playsInline = true;
-    masterVideo.preload = 'auto';
-
     activeVideo = masterVideo;
 
     masterVideo.addEventListener('loadedmetadata', () => {
-      const dur = Math.round(masterVideo.duration);
-      setStatus('▶  ' + name, dur);
+      setStatus('▶  ' + file.name, Math.round(masterVideo.duration));
     });
-
-    masterVideo.addEventListener('ended', () => {
-      showContent();
-    });
-
+    masterVideo.addEventListener('ended', showContent);
     masterVideo.addEventListener('error', () => {
-      setStatus('Error loading: ' + name + ' — skipping…');
+      setStatus('Error loading: ' + file.name + ' — skipping…');
       setTimeout(showContent, 2000);
     });
 
-    // Put the same video element in panel 0 (primary); clone into others
     for (let i = 0; i < 9; i++) {
       const slot = document.getElementById('media-' + i);
       if (i === 0) {
@@ -233,28 +333,17 @@ function showContent() {
         masterVideo.play().catch(() => {});
       } else {
         const clone = document.createElement('video');
-        clone.src = file;
+        clone.src = url;
         clone.muted = true;
         clone.playsInline = true;
-        clone.preload = 'auto';
         clone.loop = false;
 
-        // Sync clone to master
-        masterVideo.addEventListener('play', () => {
-          clone.currentTime = masterVideo.currentTime;
-          clone.play().catch(() => {});
-        });
+        masterVideo.addEventListener('play',  () => { clone.currentTime = masterVideo.currentTime; clone.play().catch(() => {}); });
         masterVideo.addEventListener('pause', () => clone.pause());
-        masterVideo.addEventListener('seeked', () => {
-          clone.currentTime = masterVideo.currentTime;
-        });
+        masterVideo.addEventListener('seeked',() => { clone.currentTime = masterVideo.currentTime; });
 
-        // Periodic sync every 5s to prevent drift
         const syncInterval = setInterval(() => {
-          if (masterVideo.ended || masterVideo.paused) {
-            clearInterval(syncInterval);
-            return;
-          }
+          if (masterVideo.ended || masterVideo.paused) { clearInterval(syncInterval); return; }
           if (Math.abs(clone.currentTime - masterVideo.currentTime) > 0.3) {
             clone.currentTime = masterVideo.currentTime;
           }
@@ -265,38 +354,35 @@ function showContent() {
       }
     }
 
-    setStatus('▶  ' + name + ' — loading…');
+    setStatus('▶  ' + file.name + ' — loading…');
 
   } else if (isImage(file)) {
-    // ── IMAGE ──
+    const url = URL.createObjectURL(file);
+    activeObjectURLs.push(url);
+
     for (let i = 0; i < 9; i++) {
       const slot = document.getElementById('media-' + i);
-      const img = document.createElement('img');
-      img.src = file;
+      const img  = document.createElement('img');
+      img.src = url;
       img.alt = '';
-      img.onerror = () => {
-        if (i === 0) {
-          setStatus('Error loading: ' + name + ' — skipping…');
+      if (i === 0) {
+        img.onerror = () => {
+          setStatus('Error loading: ' + file.name + ' — skipping…');
           setTimeout(showContent, 2000);
-        }
-      };
+        };
+      }
       slot.appendChild(img);
     }
 
     const durSec = Math.round(IMAGE_DURATION_MS / 1000);
-    setStatus('🖼  ' + name, durSec);
+    setStatus('🖼  ' + file.name, durSec);
     imageTimer = setTimeout(showContent, IMAGE_DURATION_MS);
 
   } else {
-    setStatus('Unsupported file type: ' + name + ' — skipping…');
+    setStatus('Unsupported: ' + file.name + ' — skipping…');
     setTimeout(showContent, 1500);
   }
 }
-
-// Boot
-document.addEventListener('DOMContentLoaded', () => {
-  showContent();
-});
 </script>
 </body>
 </html>
