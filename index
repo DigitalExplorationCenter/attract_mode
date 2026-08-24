@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Immersive Exhibit — 270°</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    width: 13578px;
+    height: 1200px;
+    overflow: hidden;
+    font-family: sans-serif;
+  }
+
+  #exhibit {
+    width: 13578px;
+    height: 1200px;
+    display: flex;
+    position: relative;
+  }
+
+  .panel {
+    flex: 0 0 1508px;
+    width: 1508px;
+    height: 1200px;
+    position: relative;
+    overflow: hidden;
+    background: #000;
+    border-right: 1px solid rgba(255,255,255,0.04);
+  }
+  .panel:first-child { border-left: 1px solid rgba(255,255,255,0.04); }
+
+  .panel-media {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .panel-media img,
+  .panel-media video {
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  #status {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.7);
+    color: rgba(255,255,255,0.5);
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    padding: 6px 16px;
+    border-radius: 20px;
+    pointer-events: none;
+    white-space: nowrap;
+    font-family: monospace;
+  }
+
+  #countdown {
+    color: rgba(255,255,255,0.3);
+    font-size: 11px;
+    text-align: center;
+    margin-top: 4px;
+    letter-spacing: 0.1em;
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+
+<div id="exhibit">
+  <div class="panel" id="panel-0"><div class="panel-media" id="media-0"></div></div>
+  <div class="panel" id="panel-1"><div class="panel-media" id="media-1"></div></div>
+  <div class="panel" id="panel-2"><div class="panel-media" id="media-2"></div></div>
+  <div class="panel" id="panel-3"><div class="panel-media" id="media-3"></div></div>
+  <div class="panel" id="panel-4"><div class="panel-media" id="media-4"></div></div>
+  <div class="panel" id="panel-5"><div class="panel-media" id="media-5"></div></div>
+  <div class="panel" id="panel-6"><div class="panel-media" id="media-6"></div></div>
+  <div class="panel" id="panel-7"><div class="panel-media" id="media-7"></div></div>
+  <div class="panel" id="panel-8"><div class="panel-media" id="media-8"></div></div>
+</div>
+
+<div id="status">
+  <div id="status-text">Loading content…</div>
+  <div id="countdown"></div>
+</div>
+
+<script>
+/*
+  ─────────────────────────────────────────────────────────────
+  CONTENT CONFIGURATION
+  ─────────────────────────────────────────────────────────────
+  List your files from the "content" folder below.
+  Supported image types: jpg, jpeg, png, gif, webp, svg, avif
+  Supported video types: mp4, webm, mov, ogg
+
+  Example:
+    const CONTENT_FILES = [
+      'content/photo1.jpg',
+      'content/video1.mp4',
+      'content/photo2.png',
+      'content/video2.webm',
+    ];
+  ─────────────────────────────────────────────────────────────
+*/
+const CONTENT_FILES = [
+  /* ← ADD YOUR FILES HERE, e.g.:
+  'content/image1.jpg',
+  'content/video1.mp4',
+  'content/image2.png',
+  */
+];
+
+const IMAGE_DURATION_MS = 2 * 60 * 1000; // 2 minutes
+
+const IMAGE_EXTS = new Set(['jpg','jpeg','png','gif','webp','svg','avif','bmp']);
+const VIDEO_EXTS = new Set(['mp4','webm','mov','ogg','m4v']);
+
+function getExt(path) {
+  return path.split('.').pop().toLowerCase();
+}
+
+function isImage(path) { return IMAGE_EXTS.has(getExt(path)); }
+function isVideo(path) { return VIDEO_EXTS.has(getExt(path)); }
+
+let currentIndex = -1;
+let countdownInterval = null;
+let imageTimer = null;
+let activeVideo = null;
+
+function pickRandom() {
+  if (CONTENT_FILES.length === 0) return null;
+  if (CONTENT_FILES.length === 1) return 0;
+  let next;
+  do { next = Math.floor(Math.random() * CONTENT_FILES.length); }
+  while (next === currentIndex);
+  return next;
+}
+
+function clearAllPanels() {
+  for (let i = 0; i < 9; i++) {
+    const slot = document.getElementById('media-' + i);
+    slot.innerHTML = '';
+  }
+  if (activeVideo) {
+    activeVideo.pause();
+    activeVideo = null;
+  }
+  clearInterval(countdownInterval);
+  clearTimeout(imageTimer);
+  countdownInterval = null;
+  imageTimer = null;
+}
+
+function setStatus(text, countdownSec) {
+  document.getElementById('status-text').textContent = text;
+  const cd = document.getElementById('countdown');
+  if (countdownSec == null) { cd.textContent = ''; return; }
+  let remaining = countdownSec;
+  cd.textContent = formatTime(remaining);
+  countdownInterval = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      cd.textContent = '';
+      clearInterval(countdownInterval);
+    } else {
+      cd.textContent = formatTime(remaining);
+    }
+  }, 1000);
+}
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m + ':' + String(s).padStart(2, '0') + ' remaining';
+}
+
+function showContent() {
+  if (CONTENT_FILES.length === 0) {
+    setStatus('No content found — add files to the CONTENT_FILES list in the script.');
+    return;
+  }
+
+  clearAllPanels();
+
+  const idx = pickRandom();
+  currentIndex = idx;
+  const file = CONTENT_FILES[idx];
+  const name = file.split('/').pop();
+
+  if (isVideo(file)) {
+    // ── VIDEO ──
+    const masterVideo = document.createElement('video');
+    masterVideo.src = file;
+    masterVideo.autoplay = true;
+    masterVideo.muted = true;
+    masterVideo.loop = false;
+    masterVideo.playsInline = true;
+    masterVideo.preload = 'auto';
+
+    activeVideo = masterVideo;
+
+    masterVideo.addEventListener('loadedmetadata', () => {
+      const dur = Math.round(masterVideo.duration);
+      setStatus('▶  ' + name, dur);
+    });
+
+    masterVideo.addEventListener('ended', () => {
+      showContent();
+    });
+
+    masterVideo.addEventListener('error', () => {
+      setStatus('Error loading: ' + name + ' — skipping…');
+      setTimeout(showContent, 2000);
+    });
+
+    // Put the same video element in panel 0 (primary); clone into others
+    for (let i = 0; i < 9; i++) {
+      const slot = document.getElementById('media-' + i);
+      if (i === 0) {
+        slot.appendChild(masterVideo);
+        masterVideo.play().catch(() => {});
+      } else {
+        const clone = document.createElement('video');
+        clone.src = file;
+        clone.muted = true;
+        clone.playsInline = true;
+        clone.preload = 'auto';
+        clone.loop = false;
+
+        // Sync clone to master
+        masterVideo.addEventListener('play', () => {
+          clone.currentTime = masterVideo.currentTime;
+          clone.play().catch(() => {});
+        });
+        masterVideo.addEventListener('pause', () => clone.pause());
+        masterVideo.addEventListener('seeked', () => {
+          clone.currentTime = masterVideo.currentTime;
+        });
+
+        // Periodic sync every 5s to prevent drift
+        const syncInterval = setInterval(() => {
+          if (masterVideo.ended || masterVideo.paused) {
+            clearInterval(syncInterval);
+            return;
+          }
+          if (Math.abs(clone.currentTime - masterVideo.currentTime) > 0.3) {
+            clone.currentTime = masterVideo.currentTime;
+          }
+        }, 5000);
+
+        clone.play().catch(() => {});
+        slot.appendChild(clone);
+      }
+    }
+
+    setStatus('▶  ' + name + ' — loading…');
+
+  } else if (isImage(file)) {
+    // ── IMAGE ──
+    for (let i = 0; i < 9; i++) {
+      const slot = document.getElementById('media-' + i);
+      const img = document.createElement('img');
+      img.src = file;
+      img.alt = '';
+      img.onerror = () => {
+        if (i === 0) {
+          setStatus('Error loading: ' + name + ' — skipping…');
+          setTimeout(showContent, 2000);
+        }
+      };
+      slot.appendChild(img);
+    }
+
+    const durSec = Math.round(IMAGE_DURATION_MS / 1000);
+    setStatus('🖼  ' + name, durSec);
+    imageTimer = setTimeout(showContent, IMAGE_DURATION_MS);
+
+  } else {
+    setStatus('Unsupported file type: ' + name + ' — skipping…');
+    setTimeout(showContent, 1500);
+  }
+}
+
+// Boot
+document.addEventListener('DOMContentLoaded', () => {
+  showContent();
+});
+</script>
+</body>
+</html>
